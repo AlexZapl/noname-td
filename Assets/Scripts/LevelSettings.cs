@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -14,9 +15,16 @@ public class PointFeature
 
 public class LevelSettings : MonoBehaviour
 {
+    [Header("Essentials")]
     [Tooltip("Levels root object")]
     public GameObject levelRootObject;
+    [Tooltip("Seed for generating levels")]
     public int seed = 123;
+    [Tooltip("Inputs from keyboard are different from mobile")]
+    public bool isMobileInput;
+    [Tooltip("Clicking in theese positions wont count for building")]
+    public List<RectTransform> uiElements;
+
 
     [Header("Grid settings")]
     [Range(6, 20)]
@@ -34,13 +42,19 @@ public class LevelSettings : MonoBehaviour
 
     [Tooltip("From max")]
     [Range(1f, 0f)]
-    public float RockTreshold = 0.9f;
+    public float RockTreshold = 0.9f; //from max (1-0)
     [Tooltip("Full random %")]
     [Range(0f, 0.7f)]
     public float nothingChances = 0.05f; //random percentage
-   
     [Range(0f, 1f)]
-    public float WaterTreshold = 0.3f;
+    public float WaterTreshold = 0.3f; //from min (0-1)
+
+
+    [Header("Player settings")]
+    [Range(1, 30)]
+    public int roadPointLimit = 6;
+    [Range(5, 100)]
+    public int playerUnitLimit = 20;
 
     [Header("Debug")]
     public bool gridDebug;

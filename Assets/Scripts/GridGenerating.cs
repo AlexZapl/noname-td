@@ -67,7 +67,7 @@ public class GridGenerator : MonoBehaviour
                 Vector2 dotPos = new Vector2(got.position.x+(ix * GridSpacing - (GridSizeX - 1) * GridSpacing * 0.5f), // x
                     got.position.y + (iy * GridSpacing - (GridSizeY - 1) * GridSpacing * 0.5f)); //                       y
 
-                float noiseValue = Mathf.PerlinNoise(ix * NoiseFrequency + seed, iy * NoiseFrequency + seed);
+                float noiseValue = Mathf.PerlinNoise(ix * NoiseFrequency + seed*15, iy * NoiseFrequency + seed*15);
                 PointType type = new PointType();
                 if (noiseValue < WaterTreshold)
                 {
@@ -87,6 +87,11 @@ public class GridGenerator : MonoBehaviour
                 point.position = dotPos;
                 point.pointType = type;
                 gridDots.Add(point);
+
+                if (debug)
+                { //noise debugging appears for 30 secs from start
+                    Debug.DrawRay(XYtoXZ(dotPos), Vector3.up * noiseValue * 10, Color.HSVToRGB(noiseValue*0.33f, 1f, 1f), 30);
+                }
             }
         }
         if(debug && objectForGridPoints)
@@ -117,9 +122,14 @@ public class GridGenerator : MonoBehaviour
         }
     }
 
-    public Vector3 XYtoXZ(Vector3 point, float ylevel = 1)
+    public Vector3 XYtoXZ(Vector3 point, float ylevel = 0)
     {
         return new Vector3(point.x, ylevel, point.y);
+    }
+
+    public Vector3 XZtoXY(Vector3 point)
+    {
+        return new(point.x, point.z, 0);
     }
 
 }
