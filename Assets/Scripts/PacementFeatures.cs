@@ -72,9 +72,9 @@ public class PacementFeatures : MonoBehaviour
 
     void Update()
     {
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (Input.GetMouseButtonDown(0))
         {
-            Vector2 mousepos = Mouse.current.position.ReadValue();
+            Vector2 mousepos = Input.mousePosition;
             lastClickVerification = VerifyClicks(mousepos);
             //print(lastClickVerification);
             if (isBuilding && lastClickVerification)
@@ -82,9 +82,9 @@ public class PacementFeatures : MonoBehaviour
                 buildPressPoint = mousepos;
             }
         }
-        if (Mouse.current.leftButton.isPressed && lastClickVerification)
+        if (Input.GetMouseButton(0) && lastClickVerification)
         {
-            Vector2 mousepos = Mouse.current.position.ReadValue();
+            Vector2 mousepos = Input.mousePosition;
             if (clickDebug)
             {
                 testObj2.transform.position = mousepos;
@@ -92,7 +92,7 @@ public class PacementFeatures : MonoBehaviour
                 testObj3grid.transform.position = gridLock3D(raycastMouseToWorld(mousepos), 5f, 0.5f);
             }
         }
-        if (Mouse.current.leftButton.wasReleasedThisFrame)
+        if (Input.GetMouseButtonUp(0))
         {
             lastClickVerification = false;
         }    
