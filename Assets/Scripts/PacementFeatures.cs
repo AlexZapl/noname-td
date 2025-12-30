@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework.Constraints;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -29,9 +30,10 @@ public class PacementFeatures : MonoBehaviour
 
     [SerializeField] bool lastClickVerification;
 
-    [SerializeField] bool isBuilding; //false means its not setting path nor towers
-    [SerializeField] bool isSettingPath; //true - setting path; false - setting towers
+    public bool isBuilding; //false means its not setting path nor towers
+    [SerializeField] bool isSettingPath = true; //true - setting path; false - setting towers
     [SerializeField] List<Vector3> pathBuildingPoints = new();
+    Vector3 lastDeletedVector;
 
 
     [SerializeField] GameObject testObj2;
@@ -100,10 +102,18 @@ public class PacementFeatures : MonoBehaviour
 
             if (lastClickVerification && isBuilding && isSettingPath) //settingPath
             {
+                // Внутри Update, где обрабатывается Input.GetMouseButton(0)
                 if (TryRaycastMouseToWorld(mousepos, out Vector3 result))
                 {
                     Vector3 pathPoint = gridLock3D(result, 5f, 0.5f);
-                    if (pathPoint != pathBuildingPoints[pathBuildingPoints.Count - 1])
+                    Vector3 pathPoint_ = new Vector3(pathPoint.x, pathY, pathPoint.z);
+                                        
+                    if (pathBuildingPoints.Count >= 2 && pathPoint_ == pathBuildingPoints[pathBuildingPoints.Count - 2])
+                    {
+                        RemoveLastPathPoint();
+                        lastDeletedVector = pathPoint_;
+                    }
+                    else if (pathBuildingPoints.Count > 0 && pathPoint_ != pathBuildingPoints[pathBuildingPoints.Count - 1] && pathPoint_ != lastDeletedVector)
                     {
                         AddPathPoint(pathPoint);
                     }
@@ -244,23 +254,44 @@ public class PacementFeatures : MonoBehaviour
 
     void AddPathPoint(Vector3 pos)
     {
-        if (pathPoints != null && pathBuildingPoints.Count > 0)
+        if (pathBuildingPoints.Count > 0)
         {
-            Vector3 pos_ = new(pos.x, pathY, pos.z);
+            Vector3 targetPos = new Vector3(pos.x, pathY, pos.z);
 
-            if (pathBuildingPoints[pathBuildingPoints.Count - 1] != pos_)
+            // Цикл "достраивания": пока мы не дотянулись до целевой точки соседа
+            while (pathBuildingPoints[pathBuildingPoints.Count - 1] != targetPos)
             {
-                pathBuildingPoints.Add(pos_);
+                Vector3 last = pathBuildingPoints[pathBuildingPoints.Count - 1];
+                Vector3 nextStep = last;
 
+                // Определяем направление шага (только по одной оси за раз, чтобы не было диагоналей)
+                if (Mathf.Abs(targetPos.x - last.x) > 0.1f)
+                {
+                    nextStep.x += Mathf.Sign(targetPos.x - last.x) * 5f; // 5f - ваш spacing
+                }
+                else if (Mathf.Abs(targetPos.z - last.z) > 0.1f)
+                {
+                    nextStep.z += Mathf.Sign(targetPos.z - last.z) * 5f;
+                }
+
+                // Добавляем шаг в список
+                pathBuildingPoints.Add(nextStep);
+
+                // Обновляем LineRenderer
                 lineRenderer.positionCount = pathBuildingPoints.Count;
-                lineRenderer.SetPosition(pathBuildingPoints.Count - 1, pos_);
+                lineRenderer.SetPosition(pathBuildingPoints.Count - 1, nextStep);
+
+                // Предохранитель от бесконечного цикла (на всякий случай)
+                if (pathBuildingPoints.Count > 500) break;
             }
         }
     }
     void RemoveLastPathPoint()
     {
-        if (pathPoints != null && pathBuildingPoints.Count > 0)
+        print("RemoveCalled");
+        if (pathBuildingPoints != null && pathBuildingPoints.Count > 0)
         {
+            print("Removed");
             pathBuildingPoints.RemoveAt(pathBuildingPoints.Count - 1);
             lineRenderer.positionCount = pathBuildingPoints.Count;
         }

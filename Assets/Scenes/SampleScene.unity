@@ -727,8 +727,8 @@ MonoBehaviour:
   RockFlag: {fileID: 596087935}
   NothingFlag: {fileID: 649171809}
   lastClickVerification: 0
-  isBuilding: 0
-  isSettingPath: 0
+  isBuilding: 1
+  isSettingPath: 1
   pathBuildingPoints: []
   testObj2: {fileID: 91448858}
   testObj3: {fileID: 221901744}
