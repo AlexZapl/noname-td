@@ -1,6 +1,9 @@
+﻿using System;
 using System.Collections.Generic;
+using NUnit.Framework.Constraints;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static UnityEditor.PlayerSettings;
 
 public class PacementFeatures : MonoBehaviour
 {
@@ -11,6 +14,10 @@ public class PacementFeatures : MonoBehaviour
     [SerializeField] List<RectTransform> uiElements;
 
     Transform obstaclesParent;
+
+    public List<Vector3> pathPoints;
+    public float pathY = 0.5f;
+    public LineRenderer lineRenderer;
 
     public GameObject WaterFlag;
     public GameObject RockFlag;
@@ -24,11 +31,13 @@ public class PacementFeatures : MonoBehaviour
 
     [SerializeField] bool isBuilding; //false means its not setting path nor towers
     [SerializeField] bool isSettingPath; //true - setting path; false - setting towers
-    [SerializeField] Vector2 buildPressPoint;
+    [SerializeField] List<Vector3> pathBuildingPoints = new();
+
 
     [SerializeField] GameObject testObj2;
     [SerializeField] GameObject testObj3;
     [SerializeField] GameObject testObj3grid;
+
 
     void Start()
     {
@@ -66,7 +75,7 @@ public class PacementFeatures : MonoBehaviour
 
         if (clickDebug && !testObj3grid)
         { testObj3grid = Instantiate(testObj3); }
-        }
+    }
 
 
 
@@ -77,25 +86,49 @@ public class PacementFeatures : MonoBehaviour
             Vector2 mousepos = Input.mousePosition;
             lastClickVerification = VerifyClicks(mousepos);
             //print(lastClickVerification);
-            if (isBuilding && lastClickVerification)
+            if (lastClickVerification && isBuilding && isSettingPath) //settingPath
             {
-                buildPressPoint = mousepos;
+                if (TryRaycastMouseToWorld(mousepos, out Vector3 result))
+                {
+                    StartPath(gridLock3D(result, 5f, 0.5f));
+                }
             }
         }
         if (Input.GetMouseButton(0) && lastClickVerification)
         {
             Vector2 mousepos = Input.mousePosition;
+
+            if (lastClickVerification && isBuilding && isSettingPath) //settingPath
+            {
+                if (TryRaycastMouseToWorld(mousepos, out Vector3 result))
+                {
+                    Vector3 pathPoint = gridLock3D(result, 5f, 0.5f);
+                    if (pathPoint != pathBuildingPoints[pathBuildingPoints.Count - 1])
+                    {
+                        AddPathPoint(pathPoint);
+                    }
+                }
+            }
+
             if (clickDebug)
             {
                 testObj2.transform.position = mousepos;
-                testObj3.transform.position = raycastMouseToWorld(mousepos);
-                testObj3grid.transform.position = gridLock3D(raycastMouseToWorld(mousepos), 5f, 0.5f);
+                if (TryRaycastMouseToWorld(mousepos, out Vector3 debugresult) && lastClickVerification)
+                {
+                    testObj3.transform.position = debugresult;
+                    testObj3grid.transform.position = gridLock3D(debugresult, 5f, 0.5f);
+                }
             }
         }
         if (Input.GetMouseButtonUp(0))
         {
             lastClickVerification = false;
-        }    
+
+            if (isBuilding && isSettingPath)
+            {
+                EndPath();
+            }
+        }
 
         if (gridDots.Count > 0 && !isFlagged && flagDebug)
         {
@@ -157,7 +190,7 @@ public class PacementFeatures : MonoBehaviour
             gridLock3D(gridGenerator.XYtoXZ(position), gridSpacing, 1, gridGenerator.XYtoXZ(gridCenter)));
     }
 
-    public Vector3 raycastMouseToWorld(Vector2 mousePos)
+    /*public Vector3 raycastMouseToWorld(Vector2 mousePos)
     {
         Ray ray = Camera.main.ScreenPointToRay(mousePos);
         RaycastHit hit;
@@ -166,6 +199,70 @@ public class PacementFeatures : MonoBehaviour
         {
             return hit.point;
         }
-        else { return Vector3.zero; }
+        else { return Vector3.positiveInfinity; }
+    }*/
+    public bool TryRaycastMouseToWorld(Vector3 mousePos, out Vector3 result)
+    {
+        Ray ray = Camera.main.ScreenPointToRay(mousePos);
+        if (Physics.Raycast(ray, out RaycastHit hit))
+        {
+            result = hit.point;
+            return true;
+        }
+
+        result = Vector3.zero; // Нужно что-то присвоить в любом случае
+        return false;
+    }
+
+
+    void StartPath(Vector3 pos)
+    {
+        Vector3 pos_ = new(pos.x, pathY, pos.z);
+
+        if (pathPoints == null || pathBuildingPoints.Count < 1)
+        {
+            pathBuildingPoints = new List<Vector3>();
+            pathBuildingPoints.Add(pos_);
+
+
+            lineRenderer.positionCount = 2;
+            lineRenderer.SetPosition(0, pos_);
+            lineRenderer.SetPosition(1, pos_);
+        }
+        else
+        {
+            AddPathPoint(pos_);
+        }
+    }
+
+    void EndPath()
+    {
+        pathPoints = pathBuildingPoints;
+        isBuilding = false;
+        isSettingPath = false;
+    }
+
+    void AddPathPoint(Vector3 pos)
+    {
+        if (pathPoints != null && pathBuildingPoints.Count > 0)
+        {
+            Vector3 pos_ = new(pos.x, pathY, pos.z);
+
+            if (pathBuildingPoints[pathBuildingPoints.Count - 1] != pos_)
+            {
+                pathBuildingPoints.Add(pos_);
+
+                lineRenderer.positionCount = pathBuildingPoints.Count;
+                lineRenderer.SetPosition(pathBuildingPoints.Count - 1, pos_);
+            }
+        }
+    }
+    void RemoveLastPathPoint()
+    {
+        if (pathPoints != null && pathBuildingPoints.Count > 0)
+        {
+            pathBuildingPoints.RemoveAt(pathBuildingPoints.Count - 1);
+            lineRenderer.positionCount = pathBuildingPoints.Count;
+        }
     }
 }
