@@ -200,17 +200,6 @@ public class PacementFeatures : MonoBehaviour
             gridLock3D(gridGenerator.XYtoXZ(position), gridSpacing, 1, gridGenerator.XYtoXZ(gridCenter)));
     }
 
-    /*public Vector3 raycastMouseToWorld(Vector2 mousePos)
-    {
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit))
-        {
-            return hit.point;
-        }
-        else { return Vector3.positiveInfinity; }
-    }*/
     public bool TryRaycastMouseToWorld(Vector3 mousePos, out Vector3 result)
     {
         Ray ray = Camera.main.ScreenPointToRay(mousePos);
@@ -274,24 +263,19 @@ public class PacementFeatures : MonoBehaviour
                     nextStep.z += Mathf.Sign(targetPos.z - last.z) * 5f;
                 }
 
-                // Добавляем шаг в список
                 pathBuildingPoints.Add(nextStep);
 
-                // Обновляем LineRenderer
                 lineRenderer.positionCount = pathBuildingPoints.Count;
                 lineRenderer.SetPosition(pathBuildingPoints.Count - 1, nextStep);
 
-                // Предохранитель от бесконечного цикла (на всякий случай)
-                if (pathBuildingPoints.Count > 500) break;
+                if (pathBuildingPoints.Count > 50) break;
             }
         }
     }
     void RemoveLastPathPoint()
     {
-        print("RemoveCalled");
         if (pathBuildingPoints != null && pathBuildingPoints.Count > 0)
         {
-            print("Removed");
             pathBuildingPoints.RemoveAt(pathBuildingPoints.Count - 1);
             lineRenderer.positionCount = pathBuildingPoints.Count;
         }
