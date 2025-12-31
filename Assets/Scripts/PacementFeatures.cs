@@ -19,6 +19,8 @@ public class PacementFeatures : MonoBehaviour
     public List<Vector3> pathPoints;
     public float pathY = 0.5f;
     public LineRenderer lineRenderer;
+    float gridSpacing;
+    float placementGridSpacing;
 
     public GameObject WaterFlag;
     public GameObject RockFlag;
@@ -40,6 +42,8 @@ public class PacementFeatures : MonoBehaviour
     [SerializeField] GameObject testObj3;
     [SerializeField] GameObject testObj3grid;
 
+    [SerializeField] Vector3 start, end;
+    [SerializeField] LineRenderer pathAStartRenderer;
 
     void Start()
     {
@@ -63,6 +67,8 @@ public class PacementFeatures : MonoBehaviour
         GameObject levelRootObject = levelSettings.levelRootObject;
         flagDebug = levelSettings.obstacleDebug;
         uiElements = levelSettings.uiElements;
+        gridSpacing = levelSettings.gridSpacing;
+        placementGridSpacing = gridSpacing / levelSettings.placementGridSpacingMultiplier;
 
 
         obstaclesParent = levelRootObject.transform.Find("obstacles");
@@ -77,6 +83,14 @@ public class PacementFeatures : MonoBehaviour
 
         if (clickDebug && !testObj3grid)
         { testObj3grid = Instantiate(testObj3); }
+
+
+        List<Vector3> shortestPath = FindAStarPath(start,end);
+        pathAStartRenderer.positionCount = shortestPath.Count;
+        for (int i = 0; i>shortestPath.Count; i++)
+        {
+            pathAStartRenderer.SetPosition(i, shortestPath[i]);
+        }
     }
 
 
@@ -278,6 +292,108 @@ public class PacementFeatures : MonoBehaviour
         {
             pathBuildingPoints.RemoveAt(pathBuildingPoints.Count - 1);
             lineRenderer.positionCount = pathBuildingPoints.Count;
+        }
+    }
+
+
+
+    //--------------------       A* pathfinding           --------------------
+    public class Node
+    {
+        public Vector3 position;
+        public float gCost; // Расстояние от старта
+        public float hCost; // Расстояние до финиша (эвристика)
+        public float fCost => gCost + hCost;
+        public Node parent;
+
+        public Node(Vector3 pos) => position = pos;
+    }
+
+    public List<Vector3> FindAStarPath(Vector3 startPos, Vector3 targetPos)
+    {
+        List<Node> openSet = new List<Node>();
+        HashSet<Vector3> closedSet = new HashSet<Vector3>();
+
+        Vector3 _ = gridLock3D(startPos, 5f, 0.5f);
+        Node startNode = new Node(new Vector3(_.x, 0.5f, _.z));
+        _ = gridLock3D(targetPos, 5f, 0.5f);
+        Node targetNode = new Node(new Vector3(_.x, 0.5f, _.z));
+        openSet.Add(startNode);
+
+        while (openSet.Count > 0)
+        {
+            // Ищем узел с наименьшим fCost
+            Node currentNode = openSet[0];
+            for (int i = 1; i < openSet.Count; i++)
+            {
+                if (openSet[i].fCost < currentNode.fCost ||
+                   (openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost))
+                    currentNode = openSet[i];
+            }
+
+            openSet.Remove(currentNode);
+            closedSet.Add(currentNode.position);
+
+            // Проверка на достижение цели
+            if (currentNode.position == targetNode.position)
+                return RetracePath(startNode, currentNode);
+
+            // Проверяем 4 соседей (без диагоналей)
+            foreach (Vector3 neighborPos in GetNeighbors(currentNode.position))
+            {
+                if (closedSet.Contains(neighborPos) || IsObstacle(neighborPos)) continue;
+
+                float newMovementCostToNeighbor = currentNode.gCost + 5f;
+                Node neighbor = openSet.Find(n => n.position == neighborPos) ?? new Node(neighborPos);
+
+                if (newMovementCostToNeighbor < neighbor.gCost || !openSet.Contains(neighbor))
+                {
+                    neighbor.gCost = newMovementCostToNeighbor;
+                    neighbor.hCost = Vector3.Distance(neighbor.position, targetNode.position);
+                    neighbor.parent = currentNode;
+
+                    if (!openSet.Contains(neighbor)) openSet.Add(neighbor);
+                }
+            }
+        }
+        print("nothing");
+        return new List<Vector3>(); // Путь не найден
+    }
+
+    private List<Vector3> GetNeighbors(Vector3 pos)
+    {
+        return new List<Vector3> {
+        gridLock3D(pos + new Vector3(gridSpacing, 0, 0), gridSpacing, 0.5f), 
+        gridLock3D(pos + new Vector3(-gridSpacing, 0, 0), gridSpacing, 0.5f),
+        gridLock3D(pos + new Vector3(0, 0, gridSpacing), gridSpacing, 0.5f), 
+        gridLock3D(pos + new Vector3(0, 0, -gridSpacing), gridSpacing, 0.5f)
+    };
+    }
+
+    private List<Vector3> RetracePath(Node start, Node end)
+    {
+        print("retracing");
+        List<Vector3> path = new List<Vector3>();
+        Node curr = end;
+        while (curr != null) { path.Add(curr.position); curr = curr.parent; }
+        path.Reverse();
+        print(path.ToString());
+        return path;
+    }
+
+    private bool IsObstacle(Vector3 pointPos)
+    {
+        Vector2 targetPos = gridLock3D(new(pointPos.x, pointPos.z), gridSpacing, 0.5f);
+        print(targetPos);
+        PointFeature dot = gridDots.Find(p => p.position == targetPos);
+        print(JsonUtility.ToJson(dot));
+        if (dot != null && dot.pointType == PointType.Land)
+        {
+            return false;
+        } 
+        else
+        {
+            return true;
         }
     }
 }

@@ -33,6 +33,8 @@ public class LevelSettings : MonoBehaviour
     public int gridSizeY = 10;
     [Tooltip("Better not to change")]
     public int gridSpacing = 10;
+    [Tooltip("Better not to change")]
+    public float placementGridSpacingMultiplier = 0.5f;
 
 
     [Header("Obstacles")]
@@ -51,8 +53,8 @@ public class LevelSettings : MonoBehaviour
 
 
     [Header("Player settings")]
-    [Range(1, 30)]
-    public int roadPointLimit = 6;
+    [Range(1.2f, 4f)]
+    public float pathPointMultiplier = 1.4f;
     [Range(5, 100)]
     public int playerUnitLimit = 20;
 
