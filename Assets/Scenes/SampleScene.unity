@@ -733,8 +733,8 @@ MonoBehaviour:
   testObj2: {fileID: 91448858}
   testObj3: {fileID: 221901744}
   testObj3grid: {fileID: 959434793}
-  start: {x: -45, y: 0, z: -45}
-  end: {x: 45, y: 0, z: 45}
+  start: {x: -25, y: 0, z: -35}
+  end: {x: 25, y: 0, z: 35}
   pathAStartRenderer: {fileID: 584658267}
 --- !u!114 &543018061
 MonoBehaviour:
@@ -763,8 +763,9 @@ MonoBehaviour:
   WaterTreshold: 0.217
   pathPointMultiplier: 1.4
   playerUnitLimit: 20
-  gridDebug: 1
+  gridDebug: 0
   obstacleDebug: 1
+  astarDebug: 1
 --- !u!64 &543018062
 MeshCollider:
   m_ObjectHideFlags: 0

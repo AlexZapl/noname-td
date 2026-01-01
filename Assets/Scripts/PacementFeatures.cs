@@ -29,6 +29,7 @@ public class PacementFeatures : MonoBehaviour
     bool isFlagged;
     bool flagDebug; // debug=false --> no flags showed, still exist in list
     bool clickDebug = true;
+    bool astarDebug;
 
     [SerializeField] bool lastClickVerification;
 
@@ -66,6 +67,7 @@ public class PacementFeatures : MonoBehaviour
         //getting settings from level settings
         GameObject levelRootObject = levelSettings.levelRootObject;
         flagDebug = levelSettings.obstacleDebug;
+        astarDebug = levelSettings.astarDebug;
         uiElements = levelSettings.uiElements;
         gridSpacing = levelSettings.gridSpacing;
         placementGridSpacing = gridSpacing / levelSettings.placementGridSpacingMultiplier;
@@ -87,7 +89,7 @@ public class PacementFeatures : MonoBehaviour
 
         List<Vector3> shortestPath = FindAStarPath(start,end);
         pathAStartRenderer.positionCount = shortestPath.Count;
-        for (int i = 0; i>shortestPath.Count; i++)
+        for (int i = 0; i < shortestPath.Count; i++)
         {
             pathAStartRenderer.SetPosition(i, shortestPath[i]);
         }
@@ -301,9 +303,9 @@ public class PacementFeatures : MonoBehaviour
     public class Node
     {
         public Vector3 position;
-        public float gCost; // Расстояние от старта
-        public float hCost; // Расстояние до финиша (эвристика)
-        public float fCost => gCost + hCost;
+        public float gCost; // Distance from start
+        public float hCost; // Distance from end (эвристика)
+        public float fCost => gCost + hCost; // Both distances
         public Node parent;
 
         public Node(Vector3 pos) => position = pos;
@@ -314,15 +316,19 @@ public class PacementFeatures : MonoBehaviour
         List<Node> openSet = new List<Node>();
         HashSet<Vector3> closedSet = new HashSet<Vector3>();
 
-        Vector3 _ = gridLock3D(startPos, 5f, 0.5f);
-        Node startNode = new Node(new Vector3(_.x, 0.5f, _.z));
-        _ = gridLock3D(targetPos, 5f, 0.5f);
-        Node targetNode = new Node(new Vector3(_.x, 0.5f, _.z));
+        if (astarDebug)
+        {
+            Debug.DrawRay(startPos, Vector3.up * 10, Color.yellow, 10);
+            Debug.DrawRay(targetPos, Vector3.up * 10, Color.yellow, 10);
+        }
+
+        Node startNode = new Node(new Vector3(startPos.x, 0.5f, startPos.z));
+        Node targetNode = new Node(new Vector3(targetPos.x, 0.5f, targetPos.z));
         openSet.Add(startNode);
 
         while (openSet.Count > 0)
-        {
-            // Ищем узел с наименьшим fCost
+        {;
+            // finds least fCost
             Node currentNode = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
@@ -331,16 +337,19 @@ public class PacementFeatures : MonoBehaviour
                     currentNode = openSet[i];
             }
 
+            if (astarDebug) Debug.DrawRay(currentNode.position, Vector3.up*6, Color.red, 10);
+
             openSet.Remove(currentNode);
             closedSet.Add(currentNode.position);
 
-            // Проверка на достижение цели
-            if (currentNode.position == targetNode.position)
+            // if current node pos == target pos then retrace and return path
+            if (currentNode.position == new Vector3(targetPos.x, 0.5f, targetPos.z))
                 return RetracePath(startNode, currentNode);
 
-            // Проверяем 4 соседей (без диагоналей)
+            // checks 4 neighbours (no diagonals)
             foreach (Vector3 neighborPos in GetNeighbors(currentNode.position))
             {
+                if (astarDebug) Debug.DrawRay(neighborPos, Vector3.up*3, Color.green, 10);
                 if (closedSet.Contains(neighborPos) || IsObstacle(neighborPos)) continue;
 
                 float newMovementCostToNeighbor = currentNode.gCost + 5f;
@@ -353,20 +362,21 @@ public class PacementFeatures : MonoBehaviour
                     neighbor.parent = currentNode;
 
                     if (!openSet.Contains(neighbor)) openSet.Add(neighbor);
+                    else openSet.Remove(currentNode);
                 }
             }
         }
-        print("nothing");
-        return new List<Vector3>(); // Путь не найден
+        print("a* found nothing");
+        return new List<Vector3>(); // no path
     }
 
     private List<Vector3> GetNeighbors(Vector3 pos)
     {
         return new List<Vector3> {
-        gridLock3D(pos + new Vector3(gridSpacing, 0, 0), gridSpacing, 0.5f), 
-        gridLock3D(pos + new Vector3(-gridSpacing, 0, 0), gridSpacing, 0.5f),
-        gridLock3D(pos + new Vector3(0, 0, gridSpacing), gridSpacing, 0.5f), 
-        gridLock3D(pos + new Vector3(0, 0, -gridSpacing), gridSpacing, 0.5f)
+        pos + new Vector3(gridSpacing, 0, 0),  
+        pos + new Vector3(-gridSpacing, 0, 0),
+        pos + new Vector3(0, 0, gridSpacing),  
+        pos + new Vector3(0, 0, -gridSpacing)
     };
     }
 
@@ -383,17 +393,11 @@ public class PacementFeatures : MonoBehaviour
 
     private bool IsObstacle(Vector3 pointPos)
     {
-        Vector2 targetPos = gridLock3D(new(pointPos.x, pointPos.z), gridSpacing, 0.5f);
-        print(targetPos);
-        PointFeature dot = gridDots.Find(p => p.position == targetPos);
-        print(JsonUtility.ToJson(dot));
-        if (dot != null && dot.pointType == PointType.Land)
-        {
-            return false;
-        } 
-        else
-        {
-            return true;
-        }
+        Vector2 targetPos = new(pointPos.x, pointPos.z);
+        PointFeature dot = gridDots.Find(p => Vector2.Distance(p.position, targetPos) < 0.1f);
+
+        if (dot == null) return true; //if dot isnt on board
+
+        return dot.pointType != PointType.Land; //if it is then check point type
     }
 }

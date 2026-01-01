@@ -52,6 +52,8 @@ public class GridGenerator : MonoBehaviour
 
         gridObject = levelSettings.levelRootObject;
 
+        debug = levelSettings.gridDebug;
+
         if (!gridObject)
         {
             gridObject = gameObject;

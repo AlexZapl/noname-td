@@ -61,6 +61,7 @@ public class LevelSettings : MonoBehaviour
     [Header("Debug")]
     public bool gridDebug;
     public bool obstacleDebug;
+    public bool astarDebug;
 
     private void Start()
     {
