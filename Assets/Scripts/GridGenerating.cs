@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Windows;
 
@@ -73,6 +75,8 @@ public class GridGenerator : MonoBehaviour
         Transform got = gridObject.transform;
         goY = got.position.y + 0.5f;
 
+        bool hasStart = false, hasEnd = false;
+
         List<PointFeature> generatingGridDots = new List<PointFeature>();
 
         for (int iy = 0; iy < GridSizeY; iy++)
@@ -92,6 +96,18 @@ public class GridGenerator : MonoBehaviour
                 {
                     type = PointType.Rock;
                 }
+                /*else if ((ix == 0 || iy == 0)
+                    && Random.Range(0, Mathf.Abs(ix + -iy) / 2) > Mathf.Abs(-ix + iy) / 7 && !hasStart)
+                {
+                    type = PointType.Start;
+                    hasStart = true;
+                }
+                else if ((ix == GridSizeX - 1 || iy == GridSizeY - 1)
+                    && Random.Range(0, Mathf.Abs(-ix + iy) / 2) > Mathf.Abs(ix + -iy) / 7 && !hasEnd)
+                {
+                    type = PointType.End;
+                    hasEnd = true;
+                }*/
                 else if (Random.Range(0f, 1f) < nothingChances)
                 {
                     type = PointType.Nothing;

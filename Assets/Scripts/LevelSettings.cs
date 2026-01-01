@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-public enum PointType { Land, Rock, Water, Nothing }
+public enum PointType { Land, Rock, Water, Nothing, Start, End }
 
 [Serializable]
 public class PointFeature

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework.Constraints;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -26,8 +27,9 @@ public class PacementFeatures : MonoBehaviour
     public GameObject WaterFlag;
     public GameObject RockFlag;
     public GameObject NothingFlag;
+    public GameObject StartFlag;
+    public GameObject EndFlag;
 
-    bool isFlagged;
     bool flagDebug; // debug=false --> no flags showed, still exist in list
     bool clickDebug = true;
     bool astarDebug;
@@ -44,7 +46,7 @@ public class PacementFeatures : MonoBehaviour
     [SerializeField] GameObject testObj3;
     [SerializeField] GameObject testObj3grid;
 
-    [SerializeField] Vector3 start, end;
+    Vector3 startPos, endPos;
     [SerializeField] LineRenderer pathAStarRenderer;
 
     void Start()
@@ -88,32 +90,41 @@ public class PacementFeatures : MonoBehaviour
 
         //grid generating
         gridDots = gridGenerator.GenerateGrid();
+        SetRandomStartEndPoints();
 
         int regenCount = 0;
-        List<Vector3> shortestPath = FindAStarPath(start,end);
+        List<Vector3> shortestPath = FindAStarPath(startPos, endPos);
         while (shortestPath.Count < 1)
         {
-            if (regenCount > 10) // if more than 3 regens then reload scene
-                SceneManager.LoadScene(SceneManager.GetActiveScene().name); 
-
-            if (regenCount < 4) //first regen on same seed
+            if (regenCount < 5) //first 4 regen on same seed
             {
                 gridDots = gridGenerator.GenerateGrid();
                 regenCount++;
             }
-            else //second and third on different seeds
+            else //other are on different seeds
             {
                 gridDots = gridGenerator.RegenerateGrid();
                 regenCount++;
             }
+            if (regenCount > 30) // if more than 30 regens then reload scene
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
-            shortestPath = FindAStarPath(start, end);
+
+            SetRandomStartEndPoints();
+            print(startPos.ToString() + endPos.ToString());
+
+            shortestPath = FindAStarPath(startPos, endPos);
         }
+        print(shortestPath.Count);
         pathAStarRenderer.positionCount = shortestPath.Count;
         for (int i = 0; i < shortestPath.Count; i++)
         {
             pathAStarRenderer.SetPosition(i, shortestPath[i]);
         }
+
+
+        if (gridDots.Count > 0 && flagDebug)
+            GenerateObstacles(); // debug flag placement
     }
 
     void Update()
@@ -174,12 +185,6 @@ public class PacementFeatures : MonoBehaviour
                 EndPath();
             }
         }
-
-        if (gridDots.Count > 0 && !isFlagged && flagDebug)
-        {
-            GenerateObstacles();
-            isFlagged = true;
-        } // debug flag placement
     }
 
 
@@ -202,6 +207,11 @@ public class PacementFeatures : MonoBehaviour
                 GameObject obj = Instantiate(NothingFlag, position: gridGenerator.XYtoXZ(p.position, gridGenerator.goY), new Quaternion());
                 obj.transform.SetParent(obstaclesParent);
             }
+
+            GameObject startFlag = Instantiate(StartFlag, position: startPos, new Quaternion());
+            startFlag.transform.SetParent(obstaclesParent);
+            GameObject endFlag = Instantiate(EndFlag, position: endPos, new Quaternion());
+            endFlag.transform.SetParent(obstaclesParent);
         }
     }
 
@@ -318,6 +328,40 @@ public class PacementFeatures : MonoBehaviour
 
 
     //--------------------       A* pathfinding           --------------------
+    void SetRandomStartEndPoints()
+    {
+        if (gridDots == null || gridDots.Count == 0) return;
+
+        // Списки для хранения точек на границах
+        List<PointFeature> leftEdge = new List<PointFeature>();
+        List<PointFeature> rightEdge = new List<PointFeature>();
+
+        foreach (var dot in gridDots)
+        {
+            // Проверяем, находится ли точка на левом или правом краю (по X)
+            // Используем GridSizeX и расчет индекса или просто координаты
+            if (dot.position.x <= gridDots.Min(p => p.position.x)
+                && (dot.pointType == PointType.Land || dot.pointType == PointType.Nothing))
+                leftEdge.Add(dot);
+
+            if (dot.position.x >= gridDots.Max(p => p.position.x)
+                && (dot.pointType == PointType.Land || dot.pointType == PointType.Nothing))
+                rightEdge.Add(dot);
+        }
+
+        // Выбираем случайную точку слева и случайную справа
+        PointFeature startFeature = leftEdge[UnityEngine.Random.Range(0, leftEdge.Count)];
+        PointFeature endFeature = rightEdge[UnityEngine.Random.Range(0, rightEdge.Count)];
+
+        // Присваиваем координаты (не забываем про pathY)
+        startPos = new Vector3(startFeature.position.x, pathY, startFeature.position.y);
+        endPos = new Vector3(endFeature.position.x, pathY, endFeature.position.y);
+
+        // Важно: гарантируем, что точки старта и конца - это земля
+        startFeature.pointType = PointType.Land;
+        endFeature.pointType = PointType.Land;
+    }
+
     public class Node
     {
         public Vector3 position;
