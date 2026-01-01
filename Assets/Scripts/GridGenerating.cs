@@ -59,28 +59,44 @@ public class GridGenerator : MonoBehaviour
             gridObject = gameObject;
         }
 
+        GenerateGrid();
+    }
+
+    public List<PointFeature> RegenerateGrid()
+    {
+        int seedchange = Random.Range(1, 100);
+        return GenerateGrid(seedchange);
+    }
+
+    public List<PointFeature> GenerateGrid(int seedchange = 1)
+    {
         Transform got = gridObject.transform;
-        goY = got.position.y+0.5f;
+        goY = got.position.y + 0.5f;
+
+        List<PointFeature> generatingGridDots = new List<PointFeature>();
 
         for (int iy = 0; iy < GridSizeY; iy++)
         {
             for (int ix = 0; ix < GridSizeY; ix++)
             {
-                Vector2 dotPos = new Vector2(got.position.x+(ix * GridSpacing - (GridSizeX - 1) * GridSpacing * 0.5f), // x
+                Vector2 dotPos = new Vector2(got.position.x + (ix * GridSpacing - (GridSizeX - 1) * GridSpacing * 0.5f), // x
                     got.position.y + (iy * GridSpacing - (GridSizeY - 1) * GridSpacing * 0.5f)); //                       y
 
-                float noiseValue = Mathf.PerlinNoise(ix * NoiseFrequency + seed*15, iy * NoiseFrequency + seed*15);
+                float noiseValue = Mathf.PerlinNoise(ix * NoiseFrequency + seed * 1553 * seedchange, iy * NoiseFrequency + seed * 1553 * seedchange);
                 PointType type = new PointType();
                 if (noiseValue < WaterTreshold)
                 {
                     type = PointType.Water;
-                } else if (noiseValue > RockTreshold)
+                }
+                else if (noiseValue > RockTreshold)
                 {
                     type = PointType.Rock;
-                } else if (Random.Range(0f,1f) < nothingChances)
+                }
+                else if (Random.Range(0f, 1f) < nothingChances)
                 {
                     type = PointType.Nothing;
-                } else
+                }
+                else
                 {
                     type = PointType.Land;
                 }
@@ -88,22 +104,25 @@ public class GridGenerator : MonoBehaviour
                 PointFeature point = new PointFeature();
                 point.position = dotPos;
                 point.pointType = type;
-                gridDots.Add(point);
+                generatingGridDots.Add(point);
 
                 if (debug)
                 { //noise debugging appears for 30 secs from start
-                    Debug.DrawRay(XYtoXZ(dotPos), Vector3.up * noiseValue * 10, Color.HSVToRGB(noiseValue*0.33f, 1f, 1f), 30);
+                    Debug.DrawRay(XYtoXZ(dotPos), Vector3.up * noiseValue * 10, Color.HSVToRGB(noiseValue * 0.33f, 1f, 1f), 30);
                 }
             }
         }
-        if(debug && objectForGridPoints)
+        if (debug && objectForGridPoints)
         {
-            foreach (var dot in gridDots)
+            foreach (var dot in generatingGridDots)
             {
                 GameObject obj = Instantiate(objectForGridPoints, position: XYtoXZ(dot.position, got.position.y), new Quaternion());
                 obj.transform.parent = got;
             }
         }
+
+        gridDots = generatingGridDots;
+        return generatingGridDots;
     }
 
     // Update is called once per frame

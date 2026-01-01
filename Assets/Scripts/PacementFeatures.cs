@@ -4,6 +4,7 @@ using System.Linq;
 using NUnit.Framework.Constraints;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using static UnityEditor.PlayerSettings;
 
 public class PacementFeatures : MonoBehaviour
@@ -44,7 +45,7 @@ public class PacementFeatures : MonoBehaviour
     [SerializeField] GameObject testObj3grid;
 
     [SerializeField] Vector3 start, end;
-    [SerializeField] LineRenderer pathAStartRenderer;
+    [SerializeField] LineRenderer pathAStarRenderer;
 
     void Start()
     {
@@ -81,21 +82,39 @@ public class PacementFeatures : MonoBehaviour
             obstaclesParent = obj.transform;
         }
 
-        gridDots = gridGenerator.gridDots;
-
         if (clickDebug && !testObj3grid)
         { testObj3grid = Instantiate(testObj3); }
 
 
+        //grid generating
+        gridDots = gridGenerator.GenerateGrid();
+
+        int regenCount = 0;
         List<Vector3> shortestPath = FindAStarPath(start,end);
-        pathAStartRenderer.positionCount = shortestPath.Count;
+        while (shortestPath.Count < 1)
+        {
+            if (regenCount > 10) // if more than 3 regens then reload scene
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name); 
+
+            if (regenCount < 4) //first regen on same seed
+            {
+                gridDots = gridGenerator.GenerateGrid();
+                regenCount++;
+            }
+            else //second and third on different seeds
+            {
+                gridDots = gridGenerator.RegenerateGrid();
+                regenCount++;
+            }
+
+            shortestPath = FindAStarPath(start, end);
+        }
+        pathAStarRenderer.positionCount = shortestPath.Count;
         for (int i = 0; i < shortestPath.Count; i++)
         {
-            pathAStartRenderer.SetPosition(i, shortestPath[i]);
+            pathAStarRenderer.SetPosition(i, shortestPath[i]);
         }
     }
-
-
 
     void Update()
     {
@@ -162,7 +181,6 @@ public class PacementFeatures : MonoBehaviour
             isFlagged = true;
         } // debug flag placement
     }
-
 
 
     void GenerateObstacles()

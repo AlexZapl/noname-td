@@ -735,7 +735,7 @@ MonoBehaviour:
   testObj3grid: {fileID: 959434793}
   start: {x: -25, y: 0, z: -35}
   end: {x: 25, y: 0, z: 35}
-  pathAStartRenderer: {fileID: 584658267}
+  pathAStarRenderer: {fileID: 584658267}
 --- !u!114 &543018061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -759,7 +759,7 @@ MonoBehaviour:
   placementGridSpacingMultiplier: 0.5
   NoiseFrequency: 0.709
   RockTreshold: 0.757
-  nothingChances: 0.023
+  nothingChances: 0.097
   WaterTreshold: 0.217
   pathPointMultiplier: 1.4
   playerUnitLimit: 20
